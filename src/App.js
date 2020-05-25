@@ -1,26 +1,32 @@
 import React from 'react';
-import logo from './logo.svg';
 import './App.css';
+import CameraViewer from "./components/CameraViewer";
+import ModelViewer from "./components/ModelViewer";
 
-function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+import {Chip} from "@material-ui/core";
+
+
+navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
+
+class App extends React.Component {
+    constructor(props) {
+        super(props);
+        this.model = null;
+        this.state = {
+            videoWidth: 300,
+            videoHeight: 300
+        }
+    }
+
+    render() {
+        const {videoWidth, videoHeight} = this.state;
+        return (
+            <React.Fragment>
+                <ModelViewer />
+                <CameraViewer videoWidth={videoWidth} videoHeight={videoHeight} />
+            </React.Fragment>
+        );
+    }
 }
 
 export default App;
