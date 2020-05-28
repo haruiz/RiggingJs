@@ -12,7 +12,6 @@ export default class Camera {
         try {
             const constraints = {
                 audio: false,
-                facingMode: 'user',
                 video: {
                     deviceId: deviceId,
                     //facingMode: 'user',
@@ -22,7 +21,12 @@ export default class Camera {
             };
             this.stream = await navigator.mediaDevices.getUserMedia(constraints);
             this.videoElement.srcObject = this.stream;
-            this.isRunning = true;
+            return new Promise((resolve) => {
+                this.videoElement.onloadedmetadata = () => {
+                    this.isRunning = true;
+                    resolve(this.videoElement);
+                };
+            });
         }
         catch (e) {
             console.log("Error starting the camera");
@@ -36,7 +40,7 @@ export default class Camera {
             });
             this.videoElement.srcObject = null;
             this.isRunning = false;
-            resolve();
+            return resolve();
         });
     }
     static async devicesList() {

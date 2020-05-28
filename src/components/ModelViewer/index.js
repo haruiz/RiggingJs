@@ -4,8 +4,9 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls';
 import Stats  from 'three/examples/jsm/libs/stats.module';
 import {FBXLoader} from "three/examples/jsm/loaders/FBXLoader"
+import {connect} from "react-redux";
 
-export default class ModelViewer extends React.Component{
+class ModelViewer extends React.Component{
     camera = null;
     light1 = null;
     light2 = null;
@@ -18,6 +19,8 @@ export default class ModelViewer extends React.Component{
     orbitControls = null;
     stats = null;
     clock = null;
+    modelName = null;
+    defaultAnimation;
     constructor(props) {
         super(props);
     }
@@ -66,15 +69,86 @@ export default class ModelViewer extends React.Component{
         container.appendChild(this.stats.dom);
         window.addEventListener('resize', this.onWindowResize, false);
     };
-    animate = ()=> {
-        requestAnimationFrame( this.animate );
-        if(this.cube) {
-            this.cube.rotation.x += 0.01;
-            this.cube.rotation.y += 0.01;
-        }
+    animate =()=> {
+
+        // if(this.cube) {
+        //     this.cube.rotation.x += 0.01;
+        //     this.cube.rotation.y += 0.01;
+        // }
         if(this.mixer){
             let delta = this.clock.getDelta();
             this.mixer.update( delta );
+        }
+        if(this.model){
+            const t = this.clock.getElapsedTime();
+            const {facemesh_keypoints} = this.props;
+            let neck = this.getBoneByName("Neck");
+            if(neck) {
+                if (facemesh_keypoints) {
+                    if(this.defaultAnimation)
+                        this.defaultAnimation.stop();
+                    let mesh = facemesh_keypoints.scaledMesh;
+                    let annotations = facemesh_keypoints.annotations;
+
+                    // left eye, based on the keypoints map
+                    var [x1, y1, z1] = mesh[33];
+                    var [x2, y2, z2] = mesh[133];
+                    let p1 = {x: Math.round((x1 + x2) / 2), y: Math.round(y1), z: z1};
+
+                    // right eye, based on the keypoints map
+                    [x1, y1, z1] = mesh[362];
+                    [x2, y2, z2] = mesh[263];
+                    let p2 = {x: Math.round((x1 + x2) / 2), y: Math.round(y1), z: z1};
+
+                    //noise tip
+                    var [x, y, z] = annotations["noseTip"][0];
+                    let p3 = {x: Math.round(x), y: Math.round(y), z: z};
+
+                    let distance = Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
+                    distance = distance + 12;
+                    let headCenter = {'x': (p1.x + p2.x) / 2.0, 'y': (p1.y + p2.y) / 2.0};
+
+
+                    //let newY = (headCenter.x - p3.x)/(distance/15);
+                    //let newY = (headCenter.y - p3.y)/(distance/15);
+                    function map(original, in_min, in_max, out_min, out_max) {
+                        return (original - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+                    }
+
+                    let newY = map(p3.y,distance*2.0,distance*2.8,-1.0,1);
+                    let newX = (headCenter.x - p3.x) / (distance / 15);
+
+                    neck.rotation.y = Math.max(Math.min(newX, Math.PI / 2), -Math.PI / 2);
+                    neck.rotation.x = Math.max(Math.min(newY, Math.PI / 2), -Math.PI / 2);
+
+                    // let noiseTip = facemesh_keypoints["noseTip"][0];
+                    // let pitch = noiseTip[0]* Math.PI / 180;
+                    // let yaw = noiseTip[1]* Math.PI / 180;
+                    // let roll = noiseTip[2]* Math.PI / 180;
+                    // console.log(pitch, yaw, roll);
+                    //neck.rotation.x = pitch;
+                    //neck.rotation.y = yaw;
+                    //neck.rotation.z =roll;
+                     // neck.rotation.y = Math.max(
+                    //     Math.min( newY, Math.PI / 2 ),
+                    //     - Math.PI / 2 );
+
+                    // neck.rotation.z = Math.max(
+                    //     Math.min( neck.rotation.z, Math.PI / 4 ),
+                    //     - Math.PI / 4 );
+                    //Math.cos( t ) * 0.01;
+                    // neck.rotation.y += Math.cos( t ) * 0.01;
+                    //console.log(Math.cos( t ) * 0.01);
+                    //neck.rotation.z += Math.cos( t ) * 0.01;
+                } else {
+                    if(this.defaultAnimation)
+                        this.defaultAnimation.play();
+                    neck.rotation.set(0,0,0);
+                }
+            }
+            //this.lookAtCamera();
+            requestAnimationFrame( this.animate );
+
         }
         this.renderer.render( this.scene, this.camera );
         this.stats.update();
@@ -99,10 +173,10 @@ export default class ModelViewer extends React.Component{
     };
     createGeometry=async()=>{
         // create example cube
-        let geometry = new THREE.BoxGeometry( 1, 1, 1 );
-        let material = new THREE.MeshBasicMaterial( { color: 0x00ff00 } );
-        this.cube = new THREE.Mesh( geometry, material );
-        this.cube.scale.set(20,20,20);
+        // let geometry = new THREE.BoxGeometry( 1, 1, 1 );
+        // let material = new THREE.MeshBasicMaterial( { color: 0x00ff00 } );
+        // this.cube = new THREE.Mesh( geometry, material );
+        // this.cube.scale.set(20,20,20);
         //this.scene.add(this.cube );
         // load character
         await this.loadCharacter();
@@ -121,91 +195,69 @@ export default class ModelViewer extends React.Component{
         control.attach( bone );
         this.scene.add( control );
     };
-    goTroughSkeleton=(root)=>{
-        this.addTransformControl(root);
-        // let Head = root.getObjectByName( 'Head' );
-        // this.addTransformControl(Head);
-
-        // let Neck = root.getObjectByName( 'Neck' );
-        // this.addTransformControl(Neck);
-        //
-        // let RightLeg = root.getObjectByName( 'RightLeg' );
-        // this.addTransformControl(RightLeg);
-        // let LeftLeg = root.getObjectByName( 'LeftLeg' );
-        // this.addTransformControl(LeftLeg);
-        //
-        let LeftHand = root.getObjectByName( 'LeftHand' );
-        console.log(LeftHand.children);
-        this.addTransformControl(LeftHand);
-        // let RightHand = root.getObjectByName( 'RightHand' );
-        // this.addTransformControl(RightHand);
-        //
-        // let LeftFood = root.getObjectByName( 'LeftFood' );
-        // this.addTransformControl(LeftFood);
-        // let RightFoot = root.getObjectByName( 'RightFoot' );
-        // this.addTransformControl(RightFoot);
-
-        let RightFoot = root.getObjectByName( 'Neck1' );
-        this.addTransformControl(RightFoot);
-
-
-
-        // let RightArm = root.getObjectByName( 'RightArm' );
-        // this.addTransformControl(RightArm);
-        // let LeftArm = root.getObjectByName( 'LeftArm' );
-        // this.addTransformControl(LeftArm);
-
-        // let RightShoulder = root.getObjectByName( 'RightShoulder' );
-        // this.addTransformControl(RightShoulder);
-        // let LeftShoulder = root.getObjectByName( 'LeftShoulder' );
-        // this.addTransformControl(LeftShoulder);
-
-
-        // let ElbowShoulder = root.getObjectByName( 'RightShoulder' );
-        // this.addTransformControl(RightShoulder);
-        // let LeftShoulder = root.getObjectByName( 'LeftShoulder' );
-        // this.addTransformControl(LeftShoulder);
-
-
-
-        root.traverse((child) => {
-            console.log(child.name);
-        });
+    lookAtCamera=( )=> {
+        var neck = this.getBoneByName( "Neck");
+        var tmpVector = new THREE.Vector3();
+        this.camera.getWorldPosition( tmpVector );
+        tmpVector.y -= 15;  // heuristic
+        neck.lookAt( tmpVector );
+        neck.rotation.x = Math.max(
+            Math.min( neck.rotation.x, Math.PI / 2 ),
+            - Math.PI / 2 );
+        neck.rotation.y = Math.max(
+            Math.min( neck.rotation.y, Math.PI / 2 ),
+            - Math.PI / 2 );
+        neck.rotation.z = Math.max(
+            Math.min( neck.rotation.z, Math.PI / 4 ),
+            - Math.PI / 4 );
     };
-    createSkeleton=(model)=> {
-        model.traverse((child) => {
-            if(child.type === "Bone") {
-                console.log(child.name);
-                let parentBone = child.parent.name;
-                let currentBone = child.name;
-                let bonesList = [
-                    "LeftArm",
-                    "RightArm",
-                    "LeftLeg",
-                    "RightLeg"
-                ];
-                if(bonesList.indexOf(parentBone) >= 0){
-                    this.addTransformControl(child);
-                }
-                bonesList = [
-                    "LeftHand",
-                    "RightHand",
-                    "Neck"
-                ];
-                if(bonesList.indexOf(currentBone) >= 0){
-                    this.addTransformControl(child);
-                }
+    getBoneByName=(boneName)=>{
+        let hips = this.model.getObjectByName(`${this.modelName}Hips`);
+        return hips.getObjectByName(`${this.modelName}${boneName}`);
+    };
+    createSkeletonControllers=(model)=> {
+        let rootBone = model.children.find(child => child.type === "Bone");
+        if(rootBone) {
+            let index = rootBone.name.indexOf("Hips");
+            if(index >= 0) {
+                var modelName = rootBone.name;
+                modelName =modelName.substring(0,index);
+                this.modelName = modelName;
+                rootBone.traverse((child) => {
+                    //console.log(child.name);
+                    if (child.type === "Bone") {
+                        let parentBone = child.parent.name;
+                        let currentBone = child.name;
+                        let bonesList = [
+                            "LeftArm",
+                            "RightArm",
+                            "LeftLeg",
+                            "RightLeg"
+                        ];
+                        bonesList = bonesList.map(v => `${modelName}${v}`);
+                        if(bonesList.indexOf(parentBone) >= 0){
+                            this.addTransformControl(child);
+                        }
+                        bonesList = [
+                            "LeftHand",
+                            "RightHand",
+                            "Neck"
+                        ];
+                        bonesList = bonesList.map(v => `${modelName}${v}`);
+                        if(bonesList.indexOf(currentBone) >= 0){
+                            this.addTransformControl(child);
+                        }
+                    }
+                });
             }
-        });
+        }
     };
+
     loadCharacter=async ()=>{
 
-        this.model = await this.loadFbxModel("models/girl.fbx");
-        console.log(this.model);
-        //let hip = this.model.getObjectByName( 'Hips' );
-        this.createSkeleton(this.model);
-
-
+        this.model = await this.loadFbxModel("models/monster.fbx");
+        // add skeleton controls
+        this.createSkeletonControllers(this.model);
         let skeleton = new THREE.SkeletonHelper( this.model );
         skeleton.visible = true;
         this.scene.add( skeleton );
@@ -213,8 +265,9 @@ export default class ModelViewer extends React.Component{
         this.mixer = new THREE.AnimationMixer(this.model);
         let animations =  this.model.animations;
         if (animations.length > 0) {
-            let action = this.mixer.clipAction(animations[0]);
-            //action.play();
+            let mixamoAnimation = animations.find(a => a.name === "mixamo.com");
+            this.defaultAnimation = this.mixer.clipAction(mixamoAnimation);
+            this.defaultAnimation.play();
         }
 
         this.model.traverse(function (child) {
@@ -263,3 +316,9 @@ export default class ModelViewer extends React.Component{
         )
     }
 }
+const mapStateToProps = (store, _) => {
+    return {
+        facemesh_keypoints: store.CameraViewerReducer.facemesh_keypoints
+    }
+};
+export default connect(mapStateToProps)(ModelViewer);

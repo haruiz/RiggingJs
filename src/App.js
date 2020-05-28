@@ -3,9 +3,6 @@ import './App.css';
 import CameraViewer from "./components/CameraViewer";
 import ModelViewer from "./components/ModelViewer";
 
-import {Chip} from "@material-ui/core";
-
-
 navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
 
 class App extends React.Component {
