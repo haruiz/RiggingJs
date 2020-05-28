@@ -18,9 +18,9 @@ import { connect } from "react-redux";
 import { bindActionCreators } from "redux";
 import * as actions from "../../redux/actions/CameraViewerActions"
 import VisUtil from "../../util/vis";
-const tf = window.tf; //require("@tensorflow/tfjs-core");
 const facemesh = window.facemesh;//require("@tensorflow-models/facemesh");
-
+const requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame ||  window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
+const cancelAnimationFrame = window.cancelAnimationFrame || window.mozCancelAnimationFrame;
 
 class CameraViewer extends React.Component {
     ctx = null;
@@ -28,14 +28,14 @@ class CameraViewer extends React.Component {
     constructor(props) {
         super(props);
         this.cam = null;
-        this.facemeshTfModel =null;
+        this.facemeshModel =null;
         this.deviceSelectRef = React.createRef();
         this.canvasRef = React.createRef();
 
     }
     componentDidMount=async ()=>{
         try {
-            this.facemeshTfModel = await facemesh.load({maxFaces: 1});
+            this.facemeshModel = await facemesh.load({maxFaces: 1});
         }
         catch (e) {
             console.log(`error loading the model ${e.toString()}`);
@@ -56,49 +56,30 @@ class CameraViewer extends React.Component {
             let renderVideo = async() => {
                 try {
                     if(this.cam.isRunning) {
-                        //const input = tf.browser.fromPixels(canvas);
-                        ///const faces = await this.facemeshTfModel.estimateFaces(input);
-                        const faces = await this.facemeshTfModel.estimateFaces(video);
-                        this.ctx.clearRect(0, 0, videoWidth,videoHeight);
+                        // const inputFrame = tf.browser.fromPixels(canvas);
+                        // const faces = await this.facemeshModel.estimateFaces(inputFrame,false, false);
+                        const faces = await this.facemeshModel.estimateFaces(video);
+                        this.ctx.clearRect(0, 0, videoWidth, videoHeight);
                         this.ctx.save();
                         this.ctx.scale(-1, 1);
                         this.ctx.translate(-videoWidth, 0);
                         this.ctx.drawImage(video, 0, 0, videoWidth, videoHeight);
+                        //make predictions
                         if (faces && faces.length > 0) {
-                            //VisUtil.drawMesh(this.ctx, faces[0]);
-                            VisUtil.drawFace(this.ctx, faces[0]);
-
-                            let mesh = faces[0].scaledMesh;
-                            // left eye, based on the keypoints map
-                            var [x1, y1, z1] = mesh[33];
-                            var [x2, y2, z2] = mesh[133];
-                            let p1 = {x: Math.round((x1 + x2) / 2), y: Math.round(y1), z: z1};
-                            this.ctx.fillRect(p1.x, p1.y, 5, 5);
-                            // right eye, based on the keypoints map
-                            [x1, y1, z1] = mesh[362];
-                            [x2, y2, z2] = mesh[263];
-                            let p2 = {x: Math.round((x1 + x2) / 2), y: Math.round(y1), z: z1};
-                            this.ctx.fillRect(p2.x, p2.y, 5, 5);
-                            //noise tip
-                            let annotations = faces[0].annotations;
-                            var [x, y, z] = annotations["noseTip"][0];
-                            let p3 = {x: Math.round(x), y: Math.round(y), z: z};
-                            this.ctx.fillRect(p3.x, p3.y, 5, 5);
-
-                            let distance = Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
-                            let headCenter = {'x':(p1.x + p2.x) / 2.0, 'y':(p1.y + p2.y) / 2.0};
-                            this.ctx.fillRect(headCenter.x, headCenter.y, 10, 10);
                             actions.update_facemesh_keypoints(faces[0]);
-                            //console.log(pitch, yaw, roll);
-                            //await tf.nextFrame();
+                            if(this.cam.isRunning) {
+                                VisUtil.drawFace(this.ctx, faces[0]);
+                            }
                         }
-                        else{
+                        else
                             actions.update_facemesh_keypoints(null);
-                        }
+                        this.ctx.restore();
                     }
-                    //this.ctx.closePath();reducers
-                    this.ctx.restore();
-
+                    else{
+                        actions.update_facemesh_keypoints(null);
+                        cancelAnimationFrame(this.requestAnimation); // kill animation
+                        return;
+                    }
                 }
                 catch (e) {
                     console.log("render interrupted" + e.toString());
@@ -122,10 +103,8 @@ class CameraViewer extends React.Component {
     };
 
     btnStopCamClickEvt = async () => {
+        const {videoWidth, videoHeight, actions} = this.props;
         await this.stopCamera();
-        if(this.requestAnimation) {
-            cancelAnimationFrame(this.requestAnimation);
-        }
     };
 
     render() {
