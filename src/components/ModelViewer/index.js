@@ -6,16 +6,24 @@ import Stats  from 'three/examples/jsm/libs/stats.module';
 import {FBXLoader} from "three/examples/jsm/loaders/FBXLoader"
 import {connect} from "react-redux";
 import * as dat from 'dat.gui';
-import Scene from "../../util/scene";
+import ModelEditor from "../../util/editor";
 
 class ModelViewer extends React.Component{
     constructor(props) {
         super(props);
-        this.scene = new Scene(this);
+        this.editor = new ModelEditor(this);
+
     }
     componentDidMount=async()=>{
-       await this.scene.init();
+       await this.editor.init();
+       await this.editor.setModel("models/monster.fbx");
+       // setTimeout(async () => {
+       //         await this.editor.setModel("models/zombie-girl.fbx");
+       //     },
+       //     20000);
+
     };
+
     render() {
         return(
             <div />

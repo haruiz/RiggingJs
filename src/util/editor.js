@@ -1,15 +1,29 @@
 import * as THREE from "three";
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import { TransformControls } from 'three/examples/jsm/controls/TransformControls';
 import Stats  from 'three/examples/jsm/libs/stats.module';
+import AnimateCharacter from "./character";
+import GeometryUtil from "./geometry";
 
-export default class Scene {
+
+export default class ModelEditor {
+
+    get camera() {
+        return this._camera;
+    }
+
+    get renderer() {
+        return this._renderer;
+    }
+
+    get scene() {
+        return this._scene;
+    }
+
     /**
      * class constructor
      */
     constructor(component) {
         this._camera = null;
-        this._lights = null;
         this._renderer = null;
         this._mixer = null;
         this._orbitControls = null;
@@ -19,7 +33,11 @@ export default class Scene {
         this.component = component;
         this._scene.background = new THREE.Color(0xa0a0a0);
         this._scene.fog = new THREE.Fog(0xa0a0a0, 200, 1000);
+        this._character = new AnimateCharacter(this);
     }
+
+
+
     /**
      * setup the parameters of the camera, and add it to the scene
      */
@@ -133,10 +151,47 @@ export default class Scene {
      * put animation logic here
      */
     update=()=> {
+        this._stats.begin();
         /*********** PUT ANIMATION LOGIC HERE **********/
-        const {facemesh_keypoints} = this.component.props;
-        console.log(facemesh_keypoints);
+        if(this._character) {
+            const {facemesh_keypoints} = this.component.props;
+            if (facemesh_keypoints) {
+                this._character.stopAnimation();
+                let neck = this._character.getBoneByName("Neck");
+                if(neck) {
+                    let mesh = facemesh_keypoints.scaledMesh;
+                    let annotations = facemesh_keypoints.annotations;
+                    // left eye, based on the keypoints map
+                    var [x1, y1, z1] = mesh[33];
+                    var [x2, y2, z2] = mesh[133];
+                    let p1 = {x: Math.round((x1 + x2) / 2), y: Math.round(y1), z: z1};
+                    // right eye, based on the keypoints map
+                    [x1, y1, z1] = mesh[362];
+                    [x2, y2, z2] = mesh[263];
+                    let p2 = {x: Math.round((x1 + x2) / 2), y: Math.round(y1), z: z1};
+                    //noise tip
+                    var [x, y, z] = annotations["noseTip"][0];
+                    let adjustmentValue = 12;
+                    let p3 = {x: Math.round(x), y: Math.round(y), z: z};
+                    let distance = Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
+                    distance = distance + adjustmentValue;
+                    let headCenter = {'x': (p1.x + p2.x) / 2.0, 'y': (p1.y + p2.y) / 2.0};
+                    let newY = GeometryUtil.map(p3.y,distance*2.0,distance*2.8,-1.0,1);
+                    let newX = (headCenter.x - p3.x) / (distance / 15);
+                    // rotate nick
+                    neck.rotation.y = Math.max(Math.min(newX, Math.PI / 2), -Math.PI / 2);
+                    neck.rotation.x = Math.max(Math.min(newY, Math.PI / 2), -Math.PI / 2);
+                }
+            }
+            else{
+                this._character.playAnimation();
+            }
+            //update character
+            this._character.update(this._clock);
+        }
+        //console.log(facemesh_keypoints);
         /***********************************************/
+        this._stats.end();
     };
     //animation loop
     animationLoop=()=>{
@@ -158,6 +213,11 @@ export default class Scene {
         grid.material.opacity = 0.1;
         grid.material.transparent = true;
         this._scene.add(grid);
+    }
+
+    async setModel(model_path){
+        await this._character.load(model_path);
+        this._character.playAnimation("mixamo.com");
     }
 
     /**
