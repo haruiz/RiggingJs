@@ -5,6 +5,7 @@ import { TransformControls } from 'three/examples/jsm/controls/TransformControls
 import Stats  from 'three/examples/jsm/libs/stats.module';
 import {FBXLoader} from "three/examples/jsm/loaders/FBXLoader"
 import {connect} from "react-redux";
+import * as dat from 'dat.gui';
 
 class ModelViewer extends React.Component{
     camera = null;
@@ -26,7 +27,7 @@ class ModelViewer extends React.Component{
     }
     createCamera=()=>{
         this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 2000);
-        this.camera.position.set(0, 200, 200);
+        this.camera.position.set(0, 200, 280);
         this.scene.add(this.camera);
     };
     createLights=()=>{
@@ -85,8 +86,8 @@ class ModelViewer extends React.Component{
             let neck = this.getBoneByName("Neck");
             if(neck) {
                 if (facemesh_keypoints) {
-                    if(this.defaultAnimation)
-                        this.defaultAnimation.stop();
+                    // if(this.defaultAnimation)
+                    //     this.defaultAnimation.stop();
                     let mesh = facemesh_keypoints.scaledMesh;
                     let annotations = facemesh_keypoints.annotations;
 
@@ -141,8 +142,8 @@ class ModelViewer extends React.Component{
                     //console.log(Math.cos( t ) * 0.01);
                     //neck.rotation.z += Math.cos( t ) * 0.01;
                 } else {
-                    if(this.defaultAnimation)
-                        this.defaultAnimation.play();
+                    // if(this.defaultAnimation)
+                    //     this.defaultAnimation.play();
                     neck.rotation.set(0,0,0);
                 }
             }
@@ -267,7 +268,7 @@ class ModelViewer extends React.Component{
         if (animations.length > 0) {
             let mixamoAnimation = animations.find(a => a.name === "mixamo.com");
             this.defaultAnimation = this.mixer.clipAction(mixamoAnimation);
-            this.defaultAnimation.play();
+            //this.defaultAnimation.play();
         }
 
         this.model.traverse(function (child) {
@@ -294,11 +295,42 @@ class ModelViewer extends React.Component{
        this.createHelpers();
        this.createRenderer();
        this.createControls();
+       this.createGUI();
        await this.createGeometry();
        this.animate();
     };
+    createGUI=async()=>{
+        // https://workshop.chromeexperiments.com/examples/gui/#8--Custom-Placement
+        const datGui  = new dat.GUI({ autoPlace: true });
+        datGui.domElement.id = 'gui';
+        let folder = datGui.addFolder(`Model`);
+        let palette = {
+            color1: '#FF0000', // CSS string
+            color2: [ 0, 128, 255 ], // RGB array
+            color3: [ 0, 128, 255, 0.3 ], // RGB with alpha
+            color4: { h: 350, s: 0.9, v: 0.3 } // Hue, saturation, value
+        };
+        folder.addColor(palette, 'color1');
+        folder.addColor(palette, 'color2');
+        folder.addColor(palette, 'color3');
+        folder.addColor(palette, 'color4');
+        var FizzyText = function() {
+            this.message = 'pizza';
+            this.displayOutline = false;
+        };
+        let text = new FizzyText();
+        folder.add(text, 'message', [ 'pizza', 'chrome', 'hooray' ] );
+        folder.add(text, 'displayOutline');
+
+
+    };
     loadFbxModel=async(modelPath)=>{
-        let loader  = new FBXLoader();
+        var manager = new THREE.LoadingManager();
+        manager.onStart =(item, loaded, total)=> console.log('Loading started');
+        manager.onLoad = ()=> console.log("model loaded");
+        manager.onProgress = (item, loaded, total)=> console.log(item, loaded, total);
+        manager.onError = (url)=>  console.log('Error loading');
+        let loader  = new FBXLoader(manager);
         return new Promise((resolve, reject)=>{
             loader.load(modelPath, (object)=>{
                resolve(object);
