@@ -37,6 +37,6 @@ As mentioned above, any model downloaded from https://www.mixamo.com/ can be use
 - [PoseNet Model](https://github.com/tensorflow/tfjs-models/tree/master/posenet):
 This package contains a standalone model called PoseNet, as well as some demos, for running real-time pose estimation in the browser using TensorFlow.js.
 - [BodyPix](https://github.com/tensorflow/tfjs-models/tree/master/body-pix): This package contains a standalone model called BodyPix, as well as some demos, for running real-time person and body part segmentation in the browser using TensorFlow.js.
-- [MediaPipe Facemesh](MediaPipe Facemesh is a lightweight machine learning pipeline predicting 486 3D facial landmarks to infer the approximate surface geometry of a human face (paper).)
+- [MediaPipe Facemesh](https://github.com/tensorflow/tfjs-models/tree/master/facemesh): MediaPipe Facemesh is a lightweight machine learning pipeline predicting 486 3D facial landmarks to infer the approximate surface geometry of a human face (paper).
 
 
