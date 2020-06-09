@@ -10,7 +10,7 @@ class ModelViewer extends React.Component{
     }
     componentDidMount=async()=>{
        await this.editor.init();
-       await this.editor.setModel("models/monster.fbx");
+       await this.editor.setModel("models/boy2.fbx");
        // setTimeout(async () => {
        //         await this.editor.setModel("models/zombie-girl.fbx");
        //     },

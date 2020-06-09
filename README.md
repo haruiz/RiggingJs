@@ -6,6 +6,8 @@ Rigging.js is an open-source react.js application, that takes the keypoints gene
 
 [![Watch the video](https://img.youtube.com/vi/kmRxm055Mb8/maxresdefault.jpg)](https://youtu.be/kmRxm055Mb8)
 
+[![Watch the video](https://img.youtube.com/vi/aguEcJN-FNM/maxresdefault.jpg)](https://youtu.be/aguEcJN-FNM)
+
 # Build And Run
 ````
 git clone https://github.com/haruiz/RiggingJs.git
