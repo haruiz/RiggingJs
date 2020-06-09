@@ -1,7 +1,6 @@
 import React from 'react';
-import Camera from "../../util/camera";
+import Camera from "../../core/camera";
 import Grid from "@material-ui/core/Grid";
-import Paper from "@material-ui/core/Paper";
 import DeviceSelect from "../DeviceSelect";
 import ButtonGroup from "@material-ui/core/ButtonGroup";
 import IconButton from "@material-ui/core/IconButton";
@@ -17,21 +16,49 @@ import moment from "moment";
 import { connect } from "react-redux";
 import { bindActionCreators } from "redux";
 import * as actions from "../../redux/actions/CameraViewerActions"
-import VisUtil from "../../util/vis";
+import VisUtil from "../../util/vis.util";
+import GeometryUtil from "../../util/geometry.util";
 const facemesh = window.facemesh;//require("@tensorflow-models/facemesh");
 const requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame ||  window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
 const cancelAnimationFrame = window.cancelAnimationFrame || window.mozCancelAnimationFrame;
+const tf = window.tf;
+const math = window.math;
+
+
 
 class CameraViewer extends React.Component {
-    ctx = null;
-    requestAnimation = null;
+
     constructor(props) {
         super(props);
         this.cam = null;
+        // models
         this.facemeshModel =null;
         this.deviceSelectRef = React.createRef();
-        this.canvasRef = React.createRef();
+        // canvas ref
+        this.videoCanvasRef = React.createRef();
+        this.drawCanvasRef = React.createRef();
+        // canvas contexts
+        this.videoCanvasCtx = null;
+        this.drawCanvasCtx = null;
+        // request animation
+        this.requestAnimation = null;
+    }
 
+    computeFaceRotation(face){
+        const {origin, rotationMatrix} = GeometryUtil.computeHeadPoseEstimation(face);
+        VisUtil.drawAxis(this.drawCanvasCtx, origin, rotationMatrix);
+        const {pitch, yaw, roll} = math.rotationMatrixToEulerAngles(rotationMatrix);
+        this.updateHeadRotation({pitch, yaw, roll});
+        // // pitch = Math.degrees(Math.asin(Math.sin(pitch)));
+        // // roll = -Math.degrees(Math.asin(Math.sin(roll)));
+        // // yaw = Math.degrees(Math.asin(Math.sin(yaw)));        //
+        // console.log(pitch, yaw, roll);        //
+        // //const silhouette = annotations["silhouette"];
+        // //VisUtil.drawPoint(this.drawCanvasCtx, silhouette[7][0],silhouette[7][1], 5, "green");
+        // //VisUtil.drawPoint(this.drawCanvasCtx, silhouette[29][0],silhouette[29][1], 5, "green");
+        // // for (let i = 0; i < silhouette.length; i++) {
+        // //     VisUtil.drawText(this.drawCanvasCtx, i, silhouette[i][0], silhouette[i][1], 8, "black");
+        // // }
     }
     componentDidMount=async ()=>{
         try {
@@ -40,14 +67,64 @@ class CameraViewer extends React.Component {
         catch (e) {
             console.log(`error loading the model ${e.toString()}`);
         }
-        this.ctx = this.canvasRef.current.getContext('2d');
+        this.videoCanvasCtx = this.videoCanvasRef.current.getContext('2d');
+        this.drawCanvasCtx = this.drawCanvasRef.current.getContext('2d');
     };
 
-    //camera events
+    /**
+     * update the keypoints at the redux store
+     * @param value: new coordinates
+     */
+    updateKeypoints=(value)=>{
+        const {actions} = this.props;
+        actions.updateFacemeshKeypoints(value);
+    };
+
+    /**
+     * update head rotation at the redux store
+     * @param value: new angles
+     */
+    updateHeadRotation=(value)=>{
+        const {actions} = this.props;
+        actions.updateHeadRotation(value);
+    };
+
+    /**
+     * grab the current frame and pass it into the facemesh model
+     */
+    makePredictions=async()=>{
+        const returnTensors = false;
+        const flipHorizontal = false;
+        const {videoWidth, videoHeight} = this.props;
+        const canvas = this.videoCanvasRef.current;
+        const inputFrame = tf.browser.fromPixels(canvas);
+        const faces = await this.facemeshModel.estimateFaces(inputFrame,returnTensors, flipHorizontal);
+        this.drawCanvasCtx.clearRect(0, 0, videoWidth, videoHeight);
+        if (faces && faces.length > 0) {
+            this.updateKeypoints(faces[0]);
+            if(this.cam.isRunning) {
+                this.drawCanvasCtx.save();
+                this.drawCanvasCtx.translate(0, 0);
+                VisUtil.drawFace(this.drawCanvasCtx, faces[0]);
+                this.computeFaceRotation(faces[0]);
+            }
+        }
+        else{
+            this.updateHeadRotation(null);
+            this.updateKeypoints(null);
+        }
+        this.drawCanvasCtx.restore();
+
+    };
+
+    /**
+     * start the camera stream
+     * @returns {Promise<void>}
+     */
     startCamera = async () => {
-        const {videoWidth, videoHeight, actions} = this.props;
+        const {videoWidth, videoHeight} = this.props;
         const deviceId = this.deviceSelectRef.current.selectedId();
-        const canvas = this.canvasRef.current;
+        const canvas = this.videoCanvasRef.current;
 
         if (Camera.isSupported()) {
             const video = document.querySelector('video');
@@ -58,25 +135,18 @@ class CameraViewer extends React.Component {
                     if(this.cam.isRunning) {
                         // const inputFrame = tf.browser.fromPixels(canvas);
                         // const faces = await this.facemeshModel.estimateFaces(inputFrame,false, false);
-                        const faces = await this.facemeshModel.estimateFaces(video);
-                        this.ctx.clearRect(0, 0, videoWidth, videoHeight);
-                        this.ctx.save();
-                        this.ctx.scale(-1, 1);
-                        this.ctx.translate(-videoWidth, 0);
-                        this.ctx.drawImage(video, 0, 0, videoWidth, videoHeight);
-                        //make predictions
-                        if (faces && faces.length > 0) {
-                            actions.update_facemesh_keypoints(faces[0]);
-                            if(this.cam.isRunning) {
-                                VisUtil.drawFace(this.ctx, faces[0]);
-                            }
-                        }
-                        else
-                            actions.update_facemesh_keypoints(null);
-                        this.ctx.restore();
+                        this.videoCanvasCtx.clearRect(0, 0, videoWidth, videoHeight);
+                        this.videoCanvasCtx.save();
+                        this.videoCanvasCtx.translate(videoWidth, 0);
+                        this.videoCanvasCtx.scale(-1, 1);
+                        this.videoCanvasCtx.drawImage(video, 0, 0, videoWidth, videoHeight);
+                        this.videoCanvasCtx.restore();
+                        //make inference
+                        await this.makePredictions();
                     }
                     else{
-                        actions.update_facemesh_keypoints(null);
+                        this.updateKeypoints(null);
+                        this.updateHeadRotation(null);
                         cancelAnimationFrame(this.requestAnimation); // kill animation
                         return;
                     }
@@ -88,15 +158,19 @@ class CameraViewer extends React.Component {
             };
             await renderVideo();
         } else {
-            throw new Error("Feature not supported");
+            throw new Error("Camera in not supported, please try with another browser");
         }
     };
+    /**
+     * stop the camera stream
+     * @returns {Promise<void>}
+     */
     stopCamera = async () => {
         if (this.cam && this.cam.isRunning) {
             await this.cam.stop();
         }
     };
-    // controls events
+
     btnStartCamClickEvt = async () => {
         await this.stopCamera();
         await this.startCamera();
@@ -109,6 +183,16 @@ class CameraViewer extends React.Component {
 
     render() {
         const {videoWidth, videoHeight} = this.props;
+        const wrapperStyle = {
+            position: "relative",
+            width: videoWidth,
+            height: videoHeight
+        };
+        const wrapperCanvasStyle = {
+            position: "absolute",
+            top: 0,
+            left: 0
+        };
         return (
             <Draggable >
                 <Card elevation={20} style={{ zIndex: 1, position: "absolute", top: 50, left: 50}}>
@@ -139,10 +223,16 @@ class CameraViewer extends React.Component {
                                 transform: "scaleX(-1)",
                                 display: "none"
                             }}/>
-                            <canvas  ref={this.canvasRef}
+                            <div style={wrapperStyle}>
+                            <canvas ref={this.videoCanvasRef}
                                     width={videoWidth}
                                     height={videoHeight}
-                                    style={{backgroundColor: "gray"}}/>
+                                    style={{...wrapperCanvasStyle, ...{backgroundColor: "gray"}}}/>
+                            <canvas ref={this.drawCanvasRef}
+                                     width={videoWidth}
+                                     height={videoHeight}
+                                     style={wrapperCanvasStyle}/>
+                            </div>
                         </Grid>
                         <Grid item xs={12}>
                             <DeviceSelect ref={this.deviceSelectRef}/>

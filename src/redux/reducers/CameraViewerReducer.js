@@ -1,7 +1,8 @@
 import actionsTypes from "../action_types/CameraViewerActionTypes"
 
 var initialState = {
-    facemesh_keypoints : null
+    facemesh_keypoints : null,
+    head_rotation: null
 };
 export default function reducer(state=initialState, action){
     switch (action.type) {
@@ -9,6 +10,11 @@ export default function reducer(state=initialState, action){
             return {
                 ...state,
                 facemesh_keypoints: action.payload
+            };
+        case actionsTypes.UPDATE_HEAD_ROTATION:
+            return {
+                ...state,
+                head_rotation: action.payload
             };
         default:
             return state;

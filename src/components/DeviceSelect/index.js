@@ -1,5 +1,5 @@
 import React from 'react';
-import Camera from "../../util/camera";
+import Camera from "../../core/camera";
 import MenuItem from "@material-ui/core/MenuItem";
 import Select from "@material-ui/core/Select";
 
