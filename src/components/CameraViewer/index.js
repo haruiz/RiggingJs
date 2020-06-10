@@ -44,21 +44,11 @@ class CameraViewer extends React.Component {
         this.requestAnimation = null;
     }
 
-    computeFaceRotation(face){
+    computeHeadPoseEstimation(face){
         const {origin, rotationMatrix} = GeometryUtil.computeHeadPoseEstimation(face);
         VisUtil.drawAxis(this.drawCanvasCtx, origin, rotationMatrix);
         const {pitch, yaw, roll} = math.rotationMatrixToEulerAngles(rotationMatrix);
         this.updateHeadRotation({pitch, yaw, roll});
-        // // pitch = Math.degrees(Math.asin(Math.sin(pitch)));
-        // // roll = -Math.degrees(Math.asin(Math.sin(roll)));
-        // // yaw = Math.degrees(Math.asin(Math.sin(yaw)));        //
-        // console.log(pitch, yaw, roll);        //
-        // //const silhouette = annotations["silhouette"];
-        // //VisUtil.drawPoint(this.drawCanvasCtx, silhouette[7][0],silhouette[7][1], 5, "green");
-        // //VisUtil.drawPoint(this.drawCanvasCtx, silhouette[29][0],silhouette[29][1], 5, "green");
-        // // for (let i = 0; i < silhouette.length; i++) {
-        // //     VisUtil.drawText(this.drawCanvasCtx, i, silhouette[i][0], silhouette[i][1], 8, "black");
-        // // }
     }
     componentDidMount=async ()=>{
         try {
@@ -106,7 +96,7 @@ class CameraViewer extends React.Component {
                 this.drawCanvasCtx.save();
                 this.drawCanvasCtx.translate(0, 0);
                 VisUtil.drawFace(this.drawCanvasCtx, faces[0]);
-                this.computeFaceRotation(faces[0]);
+                this.computeHeadPoseEstimation(faces[0]);
             }
         }
         else{

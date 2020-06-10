@@ -52,6 +52,15 @@ export default class VisUtil {
         }
     }
 
+    static drawSilhouette(ctx, face){
+        let annotations = face.annotations;
+        const silhouette = annotations["silhouette"];
+        for (let i = 0; i < silhouette.length; i++) {
+            this.drawText(ctx, i, silhouette[i][0], silhouette[i][1], 8, "black");
+        }
+    }
+
+
     static drawAxis(ctx, origin, rotationMatrix){
         let limitX = math.subtract(origin, math.multiply(math.squeeze(math.row(rotationMatrix, 0)), 100.0)).toArray();
         this.drawArrow([origin[1], origin[0]], [limitX[1], limitX[0]], "red", 1.0, ctx, 3);
