@@ -24,14 +24,17 @@ As mentioned above, any model downloaded from https://www.mixamo.com/ can be use
 
 - Automatic Rigging and Animation of 3D Characters: using the current state of the art deep learning models.
 - 3D expression animation using facemesh model 
-- Improve the way how the face orientations is computed
+- Record animation
+
+You can see the detailed [roadmap](https://github.com/haruiz/RiggingJs/projects/1) here.
 
 ## How to contribute:
 
 - Feel free to send a pull request
 
-## Stack libraries:
+## Third party libraries:
 - [React.js](https://reactjs.org/)
+- [Mathjs](https://mathjs.org/)
 - [Three.js](https://threejs.org/)
 - [TensorFlow.js](https://js.tensorflow.org/api/latest/)
 
