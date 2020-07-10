@@ -4,7 +4,7 @@ export default class Camera {
                 height=250) {
         this.widht = width;
         this.height = height;
-        this.videoElement = videoElement
+        this.videoElement = videoElement;
         this.stream = null;
         this.isRunning = false;
     }

@@ -18,12 +18,23 @@ import { bindActionCreators } from "redux";
 import * as actions from "../../redux/actions/CameraViewerActions"
 import VisUtil from "../../util/vis.util";
 import GeometryUtil from "../../util/geometry.util";
-const facemesh = window.facemesh;//require("@tensorflow-models/facemesh");
+import * as posenet from '@tensorflow-models/posenet';
+import * as facemesh from '@tensorflow-models/facemesh';
+import * as tf from '@tensorflow/tfjs';
 const requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame ||  window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
 const cancelAnimationFrame = window.cancelAnimationFrame || window.mozCancelAnimationFrame;
-const tf = window.tf;
 const math = window.math;
 
+const defaultPoseNetArchitecture = 'MobileNetV1';
+const defaultQuantBytes = 2;
+const defaultMultiplier = 1.0;
+const defaultStride = 16;
+const defaultInputResolution = 200;
+const nmsRadius = 30.0;
+const minPoseConfidence = 0.15;
+const minPartConfidence = 0.1;
+const returnTensors = false;
+const flipHorizontal = false;
 
 
 class CameraViewer extends React.Component {
@@ -33,10 +44,12 @@ class CameraViewer extends React.Component {
         this.cam = null;
         // models
         this.facemeshModel =null;
+        this.posenetModel =null;
         this.deviceSelectRef = React.createRef();
         // canvas ref
         this.videoCanvasRef = React.createRef();
         this.drawCanvasRef = React.createRef();
+        this.videoRef = React.createRef();
         // canvas contexts
         this.videoCanvasCtx = null;
         this.drawCanvasCtx = null;
@@ -53,6 +66,13 @@ class CameraViewer extends React.Component {
     componentDidMount=async ()=>{
         try {
             this.facemeshModel = await facemesh.load({maxFaces: 1});
+            this.posenetModel = await posenet.load({
+                architecture: defaultPoseNetArchitecture,
+                outputStride: defaultStride,
+                inputResolution: defaultInputResolution,
+                multiplier: defaultMultiplier,
+                quantBytes: defaultQuantBytes
+            })
         }
         catch (e) {
             console.log(`error loading the model ${e.toString()}`);
@@ -62,12 +82,21 @@ class CameraViewer extends React.Component {
     };
 
     /**
-     * update the keypoints at the redux store
+     * update the face mesh keypoints at the redux store
      * @param value: new coordinates
      */
-    updateKeypoints=(value)=>{
+    updateFaceMeshKeypoints=(value)=>{
         const {actions} = this.props;
         actions.updateFacemeshKeypoints(value);
+    };
+
+    /**
+     * update the pose net keypoints at the redux store
+     * @param value: new coordinates
+     */
+    updatePosenetKeypoints=(value)=>{
+        const {actions} = this.props;
+        actions.updatePosenetKeypoints(value);
     };
 
     /**
@@ -83,27 +112,60 @@ class CameraViewer extends React.Component {
      * grab the current frame and pass it into the facemesh model
      */
     makePredictions=async()=>{
-        const returnTensors = false;
-        const flipHorizontal = false;
-        const {videoWidth, videoHeight} = this.props;
-        const canvas = this.videoCanvasRef.current;
-        const inputFrame = tf.browser.fromPixels(canvas);
-        const faces = await this.facemeshModel.estimateFaces(inputFrame,returnTensors, flipHorizontal);
-        this.drawCanvasCtx.clearRect(0, 0, videoWidth, videoHeight);
-        if (faces && faces.length > 0) {
-            this.updateKeypoints(faces[0]);
-            if(this.cam.isRunning) {
-                this.drawCanvasCtx.save();
-                this.drawCanvasCtx.translate(0, 0);
-                VisUtil.drawFace(this.drawCanvasCtx, faces[0]);
-                this.computeHeadPoseEstimation(faces[0]);
+
+        try {
+
+            const {videoWidth, videoHeight} = this.props;
+            const canvas = this.videoCanvasRef.current;
+            const video = this.videoRef.current;
+            const inputFrame = tf.browser.fromPixels(canvas);
+            const faces = await this.facemeshModel.estimateFaces(inputFrame,
+                returnTensors, flipHorizontal);
+            const poses = await this.posenetModel.estimatePoses(inputFrame, {
+                decodingMethod: 'single-person',
+                maxDetections: 1,
+                scoreThreshold: minPartConfidence,
+                nmsRadius: nmsRadius
+            });
+
+            // clear canvas
+            this.drawCanvasCtx.clearRect(0, 0, videoWidth, videoHeight);
+
+
+            //draw facemesh predictions
+            if (faces && faces.length > 0) {
+                this.updateFaceMeshKeypoints(faces[0]);
+                if (this.cam.isRunning) {
+                    this.drawCanvasCtx.save();
+                    this.drawCanvasCtx.translate(0, 0);
+                    VisUtil.drawFace(this.drawCanvasCtx, faces[0]);
+                    this.computeHeadPoseEstimation(faces[0]);
+                }
+            } else {
+                this.updateHeadRotation(null);
+                this.updateFaceMeshKeypoints(null);
             }
+
+            this.drawCanvasCtx.restore();
+
+            //draw posenet predictions
+            if (poses && poses.length > 0) {
+                if (this.cam.isRunning) {
+                    this.drawCanvasCtx.save();
+                    this.drawCanvasCtx.translate(0, 0);
+                    VisUtil.drawPose(this.drawCanvasCtx, poses[0],
+                        minPoseConfidence, minPartConfidence, 1, "green");
+                    this.updatePosenetKeypoints(poses[0]);
+                }
+            }
+            else {
+                this.updatePosenetKeypoints(null);
+            }
+            this.drawCanvasCtx.restore();
         }
-        else{
-            this.updateHeadRotation(null);
-            this.updateKeypoints(null);
+        catch (e) {
+            console.log(`error making the predictions ${e}`);
         }
-        this.drawCanvasCtx.restore();
 
     };
 
@@ -135,8 +197,9 @@ class CameraViewer extends React.Component {
                         await this.makePredictions();
                     }
                     else{
-                        this.updateKeypoints(null);
+                        this.updateFaceMeshKeypoints(null);
                         this.updateHeadRotation(null);
+                        this.updatePosenetKeypoints(null)
                         cancelAnimationFrame(this.requestAnimation); // kill animation
                         return;
                     }
@@ -209,7 +272,9 @@ class CameraViewer extends React.Component {
                           justify="center"
                           style={{minHeight: '50h'}}>
                         <Grid item xs={12} style={{alignItems: "center"}}>
-                            <video autoPlay style={{
+                            <video
+                                ref={this.videoRef}
+                                autoPlay style={{
                                 transform: "scaleX(-1)",
                                 display: "none"
                             }}/>

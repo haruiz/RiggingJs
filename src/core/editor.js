@@ -2,8 +2,6 @@ import * as THREE from "three";
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import Stats  from 'three/examples/jsm/libs/stats.module';
 import AnimateCharacter from "./character";
-import GeometryUtil from "../util/geometry.util";
-
 
 export default class ModelEditor {
 
@@ -162,7 +160,7 @@ export default class ModelEditor {
             const {facemesh_keypoints, head_rotation} = this.component.props;
             if (facemesh_keypoints && head_rotation) {
                 this._character.stopAnimation();
-                var {pitch, yaw, roll} = head_rotation;
+                let {pitch, yaw, roll} = head_rotation;
                 let neck = this._character.getBoneByName("Neck");
                 if(neck) {
                     pitch = Math.degrees(Math.asin(Math.sin(pitch)));

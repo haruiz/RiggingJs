@@ -1,16 +1,9 @@
 import {TriangulationUtil} from "./triangulation.util"
-const posenet = window.posenet;//require("@tensorflow-models/facemesh");
+import * as posenet from '@tensorflow-models/posenet';
 const math = window.math;
 
 export default class VisUtil {
-    static drawFace(ctx, face) {
-        var mesh = face.scaledMesh;
-        ctx.fillStyle = "#00FF00";
-        for (let i = 0; i < mesh.length; i++) {
-            var [x, y, z] = mesh[i];
-            ctx.fillRect(Math.round(x), Math.round(y), 2, 2);
-        }
-    }
+
     static drawPath(ctx, points, closePath) {
         const region = new Path2D();
         //ctx.strokeStyle = "white";//"#00FF00";
@@ -115,4 +108,35 @@ export default class VisUtil {
         });
     }
 
+    /**
+     * Draw pose keypoints onto a canvas
+     */
+    static  drawKeypoints(keypoints, minConfidence, ctx, scale = 1, color) {
+        for (let i = 0; i < keypoints.length; i++) {
+            const keypoint = keypoints[i];
+            if (keypoint.score < minConfidence) {
+                continue;
+            }
+            const {y, x} = keypoint.position;
+            this.drawPoint(ctx, x * scale, y * scale, 3, color);
+        }
+    }
+
+
+    static drawPose(ctx, pose, minPoseConfidence, minPartConfidence, scale=1, color="red") {
+        const {score, keypoints} = pose;
+        if (score >= minPoseConfidence) {
+            this.drawKeypoints(keypoints, minPartConfidence, ctx, scale, color);
+            this.drawSkeleton(keypoints, minPartConfidence, ctx, scale, color);
+        }
+    }
+
+    static drawFace(ctx, face) {
+        var mesh = face.scaledMesh;
+        ctx.fillStyle = "#00FF00";
+        for (let i = 0; i < mesh.length; i++) {
+            var [x, y, z] = mesh[i];
+            ctx.fillRect(Math.round(x), Math.round(y), 2, 2);
+        }
+    }
 }

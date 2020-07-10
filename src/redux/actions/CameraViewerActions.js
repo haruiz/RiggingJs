@@ -7,6 +7,14 @@ export function updateFacemeshKeypoints(points) {
     }
 }
 
+export function updatePosenetKeypoints(value) {
+    return {
+        type: actionTypes.UPDATE_POSENET_KEYPOINTS,
+        payload: value
+    }
+}
+
+
 export function updateHeadRotation(value) {
     return {
         type: actionTypes.UPDATE_HEAD_ROTATION,

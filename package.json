@@ -5,6 +5,9 @@
   "dependencies": {
     "@material-ui/core": "^4.10.0",
     "@material-ui/icons": "^4.9.1",
+    "@tensorflow-models/facemesh": "0.0.3",
+    "@tensorflow-models/posenet": "^2.2.1",
+    "@tensorflow/tfjs": "^2.0.1",
     "@tensorflow/tfjs-core": "^2.0.0",
     "@testing-library/jest-dom": "^4.2.4",
     "@testing-library/react": "^9.5.0",
