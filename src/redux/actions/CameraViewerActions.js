@@ -22,4 +22,9 @@ export function updateHeadRotation(value) {
     }
 }
 
-
+export function updateBodyRotation(value) {
+    return {
+        type: actionTypes.UPDATE_BODY_ROTATION,
+        payload: value
+    }
+}

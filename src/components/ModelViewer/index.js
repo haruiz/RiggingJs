@@ -28,6 +28,8 @@ const mapStateToProps = (store, _) => {
     return {
         facemesh_keypoints: store.CameraViewerReducer.facemesh_keypoints,
         head_rotation: store.CameraViewerReducer.head_rotation,
+        pose_keypoints: store.CameraViewerReducer.posenet_keypoints,
+        body_rotation: store.CameraViewerReducer.body_rotation,
     }
 };
 export default connect(mapStateToProps)(ModelViewer);

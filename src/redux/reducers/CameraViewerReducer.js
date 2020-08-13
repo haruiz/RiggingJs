@@ -22,8 +22,12 @@ export default function reducer(state=initialState, action){
                 ...state,
                 head_rotation: action.payload
             };
+        case actionsTypes.UPDATE_BODY_ROTATION:
+            return {
+                ...state,
+                body_rotation: action.payload
+            };
         default:
             return state;
     }
 }
-

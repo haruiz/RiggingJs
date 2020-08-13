@@ -157,7 +157,7 @@ export default class ModelEditor {
         this._stats.begin();
         /*********** PUT ANIMATION LOGIC HERE **********/
         if(this._character) {
-            const {facemesh_keypoints, head_rotation} = this.component.props;
+            const {facemesh_keypoints, head_rotation, body_rotation} = this.component.props;
             if (facemesh_keypoints && head_rotation) {
                 this._character.stopAnimation();
                 let {pitch, yaw, roll} = head_rotation;
@@ -170,6 +170,24 @@ export default class ModelEditor {
                     // neck.rotation.z = Math.max(Math.min(roll, Math.PI / 2), -Math.PI / 2);
                     neck.rotation.x = -Math.max(Math.min(pitch, Math.PI / 2), -Math.PI / 2);
                     //neck.rotation.z = GeometryUtil.map(roll, -3,3, -1, 1);
+                }
+
+                // Body data
+
+                console.log(body_rotation);
+                if(body_rotation){
+                  let {bpitch, byaw, broll} = body_rotation;
+                  let hips = this._character.getBoneByName('Hips');
+                  if(hips) {
+                    bpitch = Math.degrees(Math.asin(Math.sin(bpitch)));
+                    broll = Math.degrees(Math.asin(Math.sin(broll)));
+                    byaw = Math.degrees(Math.asin(Math.sin(byaw)));
+                    hips.rotation.y = Math.max(Math.min(byaw, Math.PI / 2), -Math.PI / 2);
+                    // neck.rotation.z = Math.max(Math.min(roll, Math.PI / 2), -Math.PI / 2);
+                    hips.rotation.x = -Math.max(Math.min(bpitch, Math.PI / 2), -Math.PI / 2);
+                    //neck.rotation.z = GeometryUtil.map(roll, -3,3, -1, 1);
+                  }
+
                 }
             }
             else{

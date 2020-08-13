@@ -63,6 +63,14 @@ class CameraViewer extends React.Component {
         const {pitch, yaw, roll} = math.rotationMatrixToEulerAngles(rotationMatrix);
         this.updateHeadRotation({pitch, yaw, roll});
     }
+
+    computeBodyPoseEstimation(body){
+      const {origin, rotationMatrix} = GeometryUtil.computeBodyPoseEstimation(body);
+      VisUtil.drawAxis(this.drawCanvasCtx, origin, rotationMatrix);
+      const {pitch, yaw, roll} = math.rotationMatrixToEulerAngles(rotationMatrix);
+      this.updateBodyRotation({pitch, yaw, roll});
+    }
+
     componentDidMount=async ()=>{
         try {
             this.facemeshModel = await facemesh.load({maxFaces: 1});
@@ -156,6 +164,7 @@ class CameraViewer extends React.Component {
                     VisUtil.drawPose(this.drawCanvasCtx, poses[0],
                         minPoseConfidence, minPartConfidence, 1, "green");
                     this.updatePosenetKeypoints(poses[0]);
+                    this.computeBodyPoseEstimation(poses[0])
                 }
             }
             else {
@@ -318,5 +327,3 @@ CameraViewer.defaultProps = {
 const mapStateToProps = (store, ownProps) => { return {}};
 const mapDispatchToProps = (dispatch) => { return { actions: bindActionCreators(actions, dispatch) } };
 export default connect(mapStateToProps, mapDispatchToProps)(CameraViewer);
-
-

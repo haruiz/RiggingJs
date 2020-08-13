@@ -73,6 +73,47 @@ export default class GeometryUtil {
 
         return {origin, rotationMatrix};
     }
+
+    static computeBodyPoseEstimation(body){
+      console.log("got to utils bodypose")
+      console.log(body)
+      return;
+      let keypoints = body.keypoints;
+      //let annotations = body.annotations;
+
+      let lh = keypoints[11]; // left hip coordinates
+      let rh = keypoints[12]; // right hip coordinates
+
+      // grab the landmark points
+      //const points = math.matrix(mesh);
+      //take the center point
+      const origin = keypoints[0]; //math.mean(points, 0);
+      //compute inner distance between eyes
+      const eyesDistance = math.norm(math.subtract(lh, rh));
+      // scale coordinates
+      //const scaled = math.multiply(math.divide(points,eyesDistance), 0.06);
+      //const scaled = math.divide(points,eyesDistance);
+      // normalized coordinates
+      //const centered = math.subtract_(points, math.mean(scaled, 0));
+
+      // pick target coordinates
+      const a = math.squeeze(math.row(centered,33)).toArray(); //left eyes
+      const b = math.squeeze(math.row(centered,263)).toArray(); // right eye
+      //const c =  math.squeeze(math.row(centered,6)).toArray();
+      const c =  [(a[0] + b[0]) / 2, a[1], a[2]];
+      const d = math.squeeze(math.row(centered,152)).toArray(); // chin
+
+      let rx = math.subtract(a,b);
+      rx = math.divide(rx, math.norm(rx));
+
+      let ry = math.subtract(c,d);
+      ry = math.divide(ry, math.norm(ry));
+
+      let rz = math.cross(rx, ry);
+      var rotationMatrix = math.matrix([rx,ry,rz]);
+
+      return {origin, rotationMatrix};
+    }
 }
 
 math.import({
