@@ -5,7 +5,8 @@ import ModelViewer from "../ModelViewer";
 import PropTypes from "prop-types"
 // import * as posenet from '@tensorflow-models/posenet';
 // import * as posenet3d  from "../../core/posenet3d";
-import * as facemesh from '@tensorflow-models/facemesh';
+import * as faceLandmarksDetection from '@tensorflow-models/face-landmarks-detection';
+import "@tensorflow/tfjs-backend-webgl";
 import {facemeshModelConfig} from "../../util/models.config";
 import VisUtil from "../../util/vis.util";
 import {bindActionCreators} from "redux";
@@ -23,14 +24,17 @@ class App extends React.Component {
         this.facemeshModel = null;
     }
     loadModels=async ()=>{
-        this.facemeshModel = await facemesh.load(facemeshModelConfig);
+        this.facemeshModel = await faceLandmarksDetection.load(
+            faceLandmarksDetection.SupportedPackages.mediapipeFacemesh
+        );
+        console.log(this.facemeshModel);
     }
     componentDidMount=async ()=>{
         try {
             await this.loadModels();
         }
         catch (e) {
-            console.log(`error loading the model ${e.toString()}`);
+            console.log(`error loading the model ${e.toString()}`, e);
         }
     }
     camStopCallback=(_)=>{
@@ -52,33 +56,39 @@ class App extends React.Component {
         const {videoWidth, videoHeight, actions} = this.props;
         const {updateFaceLocation} = actions;
         if(this.facemeshModel){
-            const faces = await this.facemeshModel.estimateFaces(
-                imageTensor,
-                FACEMESH_MODEL_RETURN_TENSORS,
-                FACEMESH_MODEL_FLIP_HORIZONTAL);
-            ctx.clearRect(0, 0, videoWidth, videoHeight);
-            //draw facemesh predictions
-            if(cam.isRunning) {
-                if (faces && faces.length > 0) {
-                    ctx.save();
-                    ctx.translate(0, 0);
-                    VisUtil.drawFace(ctx, faces[0]);
-                    ctx.restore();
-                    let faceLoc = faces[0];
-                    const {
-                        origin,
-                        rotationMatrix,
-                        pitch,
-                        yaw,
-                        roll
-                    } = this.computeHeadRotation(faceLoc)
-                    console.log(pitch, yaw, roll)
-                    updateFaceLocation({...faceLoc,pitch, yaw, roll});
-                    VisUtil.drawAxis(ctx, origin, rotationMatrix);
+            try {
+                const faces = await this.facemeshModel.estimateFaces({
+                    input: imageTensor,
+                    returnTensors: FACEMESH_MODEL_RETURN_TENSORS,
+                    flipHorizontal: FACEMESH_MODEL_FLIP_HORIZONTAL,
+                    predictIrises: false
+                });
+                ctx.clearRect(0, 0, videoWidth, videoHeight);
+                //draw facemesh predictions
+                if(cam.isRunning) {
+                    if (faces && faces.length > 0) {
+                        ctx.save();
+                        ctx.translate(0, 0);
+                        VisUtil.drawFace(ctx, faces[0]);
+                        ctx.restore();
+                        let faceLoc = faces[0];
+                        const {
+                            origin,
+                            rotationMatrix,
+                            pitch,
+                            yaw,
+                            roll
+                        } = this.computeHeadRotation(faceLoc)
+                        updateFaceLocation({...faceLoc,pitch, yaw, roll});
+                        VisUtil.drawAxis(ctx, origin, rotationMatrix);
+                    }
+                    else{
+                        updateFaceLocation(null);
+                    }
                 }
-                else{
-                    updateFaceLocation(null);
-                }
+            }
+            catch (e) {
+                console.log(e);
             }
         }
     }

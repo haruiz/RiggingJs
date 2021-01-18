@@ -45,9 +45,7 @@ export default class GeometryUtil {
 
         // grab the landmark points
         const points = math.matrix(mesh);
-
         // create new coordinate system
-
         //choose the origin point
         const origin = annotations["noseTip"][0]; //math.mean(points, 0);
         //compute inner distance between eyes

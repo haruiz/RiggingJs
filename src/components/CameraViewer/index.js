@@ -12,9 +12,6 @@ import CardContent from '@material-ui/core/CardContent';
 import MoreVertIcon from '@material-ui/icons/MoreVert';
 import VideoCamIcon from '@material-ui/icons/Videocam';
 import moment from "moment";
-import {connect} from "react-redux";
-import {bindActionCreators} from "redux";
-import * as actions from "../../redux/actions/appActions"
 import {CircularProgress} from "@material-ui/core";
 import PropTypes from "prop-types";
 import Camera from "../../core/camera";
@@ -61,7 +58,12 @@ class CameraViewer extends React.Component {
                 this.videoCanvasCtx.drawImage(video, 0, 0, videoWidth, videoHeight);
                 this.videoCanvasCtx.restore();
                 if(updateCallback){
-                    updateCallback(tf.browser.fromPixels(canvas), this.drawCanvasCtx, this.cam)
+                    //tf.tidy(() => {
+                        let imageTensor = tf.browser.fromPixels(canvas)
+                        updateCallback(imageTensor, this.drawCanvasCtx, this.cam)
+                        imageTensor.dispose();
+
+                    //});
                 }
             }
             else{
