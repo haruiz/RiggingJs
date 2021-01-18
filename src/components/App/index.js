@@ -43,7 +43,7 @@ class App extends React.Component {
         const {updateFaceLocation} = actions;
         updateFaceLocation(null);
     }
-    computeFaceRotation(face){
+    computeHeadRotation(face){
         const {origin, rotationMatrix} = GeometryUtil.computeHeadPoseEstimation(face);
         const {pitch, yaw, roll} = math.rotationMatrixToEulerAngles(rotationMatrix);
         return {origin, rotationMatrix, pitch, yaw, roll}
@@ -71,7 +71,7 @@ class App extends React.Component {
                         pitch,
                         yaw,
                         roll
-                    } = this.computeFaceRotation(faceLoc)
+                    } = this.computeHeadRotation(faceLoc)
                     console.log(pitch, yaw, roll)
                     updateFaceLocation({...faceLoc,pitch, yaw, roll});
                     VisUtil.drawAxis(ctx, origin, rotationMatrix);
