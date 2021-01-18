@@ -2,7 +2,6 @@ import React from 'react';
 import Camera from "../../core/camera";
 import MenuItem from "@material-ui/core/MenuItem";
 import Select from "@material-ui/core/Select";
-import {CircularProgress} from "@material-ui/core";
 import PropTypes from "prop-types";
 
 class DevicePicker extends React.Component {
@@ -41,17 +40,11 @@ class DevicePicker extends React.Component {
         const items = devicesList.map((d, i) =>
             <MenuItem key={i} value={d.id}>{d.label}</MenuItem>
         );
-        let childrenComponent;
-        if (disabled) {
-            childrenComponent =  <CircularProgress disableShrink />;
-        } else {
-            childrenComponent = (
-                <Select label="Select the camera" value={deviceId} onChange={this.onChangeHandler} style={{minWidth: 280}} disabled={disabled} >
-                    {items}
-                </Select>
-            )
-        }
-        return childrenComponent;
+        return (
+            <Select label="Select the camera" value={deviceId} onChange={this.onChangeHandler} style={{minWidth: 280}} disabled={disabled} >
+                {items}
+            </Select>
+        );
     }
 }
 

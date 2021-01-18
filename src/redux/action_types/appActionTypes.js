@@ -1,0 +1,3 @@
+export default {
+    UPDATE_FACE_LOCATION : "UPDATE_FACE_LOCATION"
+}

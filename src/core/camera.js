@@ -1,3 +1,5 @@
+navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
+
 export default class Camera {
     constructor(videoElement,
                 width=250,

@@ -1,14 +1,14 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
-import Index from './components/App';
+import App from './components/App';
 import * as serviceWorker from './serviceWorker';
 import {Provider} from "react-redux";
 import store from "./redux/store";
 
 ReactDOM.render(
     <Provider store={store}>
-        <Index videoWidth={300} videoHeight={300}/>
+        <App videoWidth={300} videoHeight={300}/>
     </Provider>,
     document.getElementById('root')
 );

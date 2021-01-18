@@ -150,12 +150,16 @@ export default class ModelEditor {
         /*********** PUT ANIMATION LOGIC HERE **********/
         if(this._character) {
             const {props} = this.component;
-            const {facemesh_keypoints, head_rotation} = props;
-            if (facemesh_keypoints && head_rotation) {
+            const {faceLocation} = props;
+            if (faceLocation) {
                 this._character.stopAnimation();
-                let {pitch, yaw, roll} = head_rotation;
                 let neck = this._character.getBoneByName("Neck");
                 if(neck) {
+                    let {
+                        pitch,
+                        yaw,
+                        roll
+                    } = faceLocation;
                     pitch = Math.degrees(Math.asin(Math.sin(pitch)));
                     roll = Math.degrees(Math.asin(Math.sin(roll)));
                     yaw = Math.degrees(Math.asin(Math.sin(yaw)));
@@ -163,19 +167,6 @@ export default class ModelEditor {
                     neck.rotation.z = -Math.max(Math.min(roll, Math.PI / 2), -Math.PI / 2);
                     neck.rotation.x = -Math.max(Math.min(pitch, Math.PI / 2), -Math.PI / 2);
                 }
-                // let leftHand = this._character.getBoneByName("LeftHand");
-                // let rightHand = this._character.getBoneByName("RightHand");
-                // let rightShoulder = this._character.getBoneByName("RightShoulder");
-                // let leftShoulder = this._character.getBoneByName("LeftShoulder");
-                // let leftForeArm = this._character.getBoneByName("LeftForeArm");//left elbow
-                // let rightForeArm = this._character.getBoneByName("RightForeArm");
-
-                // rotate nick
-                //let newY = Math.degrees(Math.asin(Math.sin(leftHand.rotation.y)));
-                //let delta = 20;
-                // rightForeArm.rotation.z += Math.max(Math.min(Math.sin(delta) * 0.2, Math.PI / 2), -Math.PI / 2);
-                //rightShoulder.rotation.x = Math.max(Math.min(newY, Math.PI / 2), -Math.PI / 2);
-
             }
             else{
                 //this._character.lookAtCamera();

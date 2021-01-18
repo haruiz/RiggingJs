@@ -1,3 +1,3 @@
 import { combineReducers} from "redux";
-import CameraViewerReducer from "./CameraViewerReducer";
-export default combineReducers({CameraViewerReducer});
+import AppReducer from "./appReducer";
+export default combineReducers({AppReducer});

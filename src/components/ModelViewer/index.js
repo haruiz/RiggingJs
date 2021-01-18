@@ -26,8 +26,7 @@ class ModelViewer extends React.Component{
 }
 const mapStateToProps = (store, _) => {
     return {
-        facemesh_keypoints: store.CameraViewerReducer.facemesh_keypoints,
-        head_rotation: store.CameraViewerReducer.head_rotation,
+        faceLocation: store.AppReducer.faceLocation
     }
 };
 export default connect(mapStateToProps)(ModelViewer);

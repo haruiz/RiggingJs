@@ -64,7 +64,6 @@ export default class GeometryUtil {
         //const c =  math.squeeze(math.row(centered,6)).toArray();
         const c =  [(a[0] + b[0]) / 2, a[1], a[2]];
         const d = math.squeeze(math.row(centered,152)).toArray(); // chin - 152 idx
-
         // using pitagoras and identity functions
         let rx = math.subtract(a,b);
         rx = math.divide(rx, math.norm(rx));
@@ -78,7 +77,6 @@ export default class GeometryUtil {
 
         // create rotation matrix
         let rotationMatrix = math.matrix([rx,ry,rz]);
-
         return {origin, rotationMatrix};
     }
 }
