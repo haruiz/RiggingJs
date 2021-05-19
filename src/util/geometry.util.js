@@ -36,23 +36,18 @@ export default class GeometryUtil {
     }
 
     static computeHeadPoseEstimation(face){
-
-        let mesh = face.scaledMesh;
-        let annotations = face.annotations;
-
-        let le = mesh[133]; // left eye coordinates
-        let re = mesh[362]; // right eye coordinates
-
+        const {annotations, scaledMesh} = face;
+        const { leftCheek, rightCheek } = annotations;
         // grab the landmark points
-        const points = math.matrix(mesh);
-        // create new coordinate system
+        const points = math.matrix(scaledMesh);
+        //1. create new coordinate system
         //choose the origin point
-        const origin = annotations["noseTip"][0]; //math.mean(points, 0);
-        //compute inner distance between eyes
-        const eyesDistance = math.norm(math.subtract(le, re));
+        const { noseTip } = annotations;
+        const origin = noseTip[0];
+        //compute inner distance between extreme points
+        const cheeksDistance = math.norm(math.subtract(leftCheek[0], rightCheek[0]));
         // scale coordinates
-        //const scaled = math.multiply(math.divide(points,eyesDistance), 0.06);
-        const scaled = math.divide(points,eyesDistance);
+        const scaled = math.divide(points,cheeksDistance);
         // normalized coordinates - 0-1
         const centered = math.subtract_(points, math.mean(scaled, 0));
 

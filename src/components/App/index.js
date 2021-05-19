@@ -3,31 +3,40 @@ import './style.css';
 import CameraViewer from "../CameraViewer";
 import ModelViewer from "../ModelViewer";
 import PropTypes from "prop-types"
-// import * as posenet from '@tensorflow-models/posenet';
+import * as posenet from '@tensorflow-models/posenet';
 // import * as posenet3d  from "../../core/posenet3d";
 import * as faceLandmarksDetection from '@tensorflow-models/face-landmarks-detection';
 import "@tensorflow/tfjs-backend-webgl";
-import {facemeshModelConfig} from "../../util/models.config";
 import VisUtil from "../../util/vis.util";
 import {bindActionCreators} from "redux";
 import * as actions from "../../redux/actions/appActions";
 import {connect} from "react-redux";
 import {math} from "../../util/imports";
 import GeometryUtil from "../../util/geometry.util";
+//import * as tf from "@tensorflow/tfjs";
 
 const FACEMESH_MODEL_RETURN_TENSORS = false;
 const FACEMESH_MODEL_FLIP_HORIZONTAL = false;
+const FACEMESH_MODEL_PREDICT_IRISES = false;
+const FACEMESH_MODEL_MAX_FACES = 1;
+const FACEMESH_MODEL_SCORE_THRESHOLD = 0.9;
 
 class App extends React.Component {
     constructor(props) {
         super(props);
         this.facemeshModel = null;
+        this.posenet2d = null;
     }
     loadModels=async ()=>{
+
         this.facemeshModel = await faceLandmarksDetection.load(
             faceLandmarksDetection.SupportedPackages.mediapipeFacemesh
         );
-        console.log(this.facemeshModel);
+        this.posenet2dModel = await posenet.load({
+            architecture: 'MobileNetV1',
+            outputStride: 16,
+            multiplier: 0.75
+        });
     }
     componentDidMount=async ()=>{
         try {
@@ -61,16 +70,20 @@ class App extends React.Component {
                     input: imageTensor,
                     returnTensors: FACEMESH_MODEL_RETURN_TENSORS,
                     flipHorizontal: FACEMESH_MODEL_FLIP_HORIZONTAL,
-                    predictIrises: false
+                    predictIrises: FACEMESH_MODEL_PREDICT_IRISES,
+                    maxFaces: FACEMESH_MODEL_MAX_FACES,
+                    scoreThreshold : FACEMESH_MODEL_SCORE_THRESHOLD
                 });
+                const pose2d = await this.posenet2dModel.estimateSinglePose(imageTensor);
+
                 ctx.clearRect(0, 0, videoWidth, videoHeight);
                 //draw facemesh predictions
                 if(cam.isRunning) {
                     if (faces && faces.length > 0) {
-                        ctx.save();
-                        ctx.translate(0, 0);
-                        VisUtil.drawFace(ctx, faces[0]);
-                        ctx.restore();
+                        // ctx.save();
+                        // ctx.translate(0, 0);
+                        // VisUtil.drawFace(ctx, faces[0]);
+                        // ctx.restore();
                         let faceLoc = faces[0];
                         const {
                             origin,
@@ -84,6 +97,13 @@ class App extends React.Component {
                     }
                     else{
                         updateFaceLocation(null);
+                    }
+
+                    if(pose2d.score > 0.2){
+                        ctx.translate(0, 0);
+                        VisUtil.drawPose(ctx, pose2d,
+                            0.0, 0.5, 1, "green");
+                        ctx.restore();
                     }
                 }
             }

@@ -52,8 +52,9 @@ export default  class AnimateCharacter {
                 modelName =modelName.substring(0,index);
                 this._modelName = modelName;
                 rootBone.traverse((child) => {
-                    console.log(child.name, child.children);
+                    //console.log(child.name, child.children);
                     if (child.type === "Bone") {
+                        //this.addTransformControl(child);
                         let parentBone = child.parent.name;
                         let currentBone = child.name;
                         let bonesList = [
