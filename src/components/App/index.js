@@ -74,16 +74,14 @@ class App extends React.Component {
                     maxFaces: FACEMESH_MODEL_MAX_FACES,
                     scoreThreshold : FACEMESH_MODEL_SCORE_THRESHOLD
                 });
-                const pose2d = await this.posenet2dModel.estimateSinglePose(imageTensor);
-
                 ctx.clearRect(0, 0, videoWidth, videoHeight);
                 //draw facemesh predictions
                 if(cam.isRunning) {
                     if (faces && faces.length > 0) {
-                        // ctx.save();
-                        // ctx.translate(0, 0);
-                        // VisUtil.drawFace(ctx, faces[0]);
-                        // ctx.restore();
+                        ctx.save();
+                        ctx.translate(0, 0);
+                        VisUtil.drawFace(ctx, faces[0]);
+                        ctx.restore();
                         let faceLoc = faces[0];
                         const {
                             origin,
@@ -99,12 +97,13 @@ class App extends React.Component {
                         updateFaceLocation(null);
                     }
 
-                    if(pose2d.score > 0.2){
-                        ctx.translate(0, 0);
-                        VisUtil.drawPose(ctx, pose2d,
-                            0.0, 0.5, 1, "green");
-                        ctx.restore();
-                    }
+                    //const pose2d = await this.posenet2dModel.estimateSinglePose(imageTensor);
+                    // if(pose2d.score > 0.2){
+                    //     ctx.translate(0, 0);
+                    //     VisUtil.drawPose(ctx, pose2d,
+                    //         0.0, 0.5, 1, "green");
+                    //     ctx.restore();
+                    // }
                 }
             }
             catch (e) {
