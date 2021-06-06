@@ -3,7 +3,7 @@ import './style.css';
 import CameraViewer from "../CameraViewer";
 import ModelViewer from "../ModelViewer";
 import PropTypes from "prop-types"
-import * as posenet from '@tensorflow-models/posenet';
+// import * as posenet from '@tensorflow-models/posenet';
 // import * as posenet3d  from "../../core/posenet3d";
 import * as faceLandmarksDetection from '@tensorflow-models/face-landmarks-detection';
 import "@tensorflow/tfjs-backend-webgl";
@@ -13,7 +13,7 @@ import * as actions from "../../redux/actions/appActions";
 import {connect} from "react-redux";
 import {math} from "../../util/imports";
 import GeometryUtil from "../../util/geometry.util";
-//import * as tf from "@tensorflow/tfjs";
+import * as tf from "@tensorflow/tfjs";
 
 const FACEMESH_MODEL_RETURN_TENSORS = false;
 const FACEMESH_MODEL_FLIP_HORIZONTAL = false;
@@ -26,17 +26,20 @@ class App extends React.Component {
         super(props);
         this.facemeshModel = null;
         this.posenet2d = null;
+        this.posenet3d = null;
     }
     loadModels=async ()=>{
 
         this.facemeshModel = await faceLandmarksDetection.load(
             faceLandmarksDetection.SupportedPackages.mediapipeFacemesh
         );
-        this.posenet2dModel = await posenet.load({
-            architecture: 'MobileNetV1',
-            outputStride: 16,
-            multiplier: 0.75
-        });
+        // this.posenet2dModel = await posenet.load({
+        //     architecture: 'MobileNetV1',
+        //     outputStride: 16,
+        //     multiplier: 0.75
+        // });
+        //this.posenet3d = await posenet3d.load()
+
     }
     componentDidMount=async ()=>{
         try {
@@ -61,22 +64,27 @@ class App extends React.Component {
         const {pitch, yaw, roll} = math.rotationMatrixToEulerAngles(rotationMatrix);
         return {origin, rotationMatrix, pitch, yaw, roll}
     }
-    camUpdateCallback=async (imageTensor,ctx, cam)=>{
+    drawFaceMeshModelPredictions=()=>{
+
+    }
+    camUpdateCallback=async (canvas,ctx, cam)=>{
         const {videoWidth, videoHeight, actions} = this.props;
         const {updateFaceLocation} = actions;
         if(this.facemeshModel){
             try {
+                //console.log(tf.memory());
+                tf.engine().startScope()
+                let imageTensor = tf.browser.fromPixels(canvas)
                 const faces = await this.facemeshModel.estimateFaces({
                     input: imageTensor,
                     returnTensors: FACEMESH_MODEL_RETURN_TENSORS,
                     flipHorizontal: FACEMESH_MODEL_FLIP_HORIZONTAL,
                     predictIrises: FACEMESH_MODEL_PREDICT_IRISES,
                     maxFaces: FACEMESH_MODEL_MAX_FACES,
-                    scoreThreshold : FACEMESH_MODEL_SCORE_THRESHOLD
+                    scoreThreshold: FACEMESH_MODEL_SCORE_THRESHOLD
                 });
                 ctx.clearRect(0, 0, videoWidth, videoHeight);
-                //draw facemesh predictions
-                if(cam.isRunning) {
+                if (cam.isRunning) {
                     if (faces && faces.length > 0) {
                         ctx.save();
                         ctx.translate(0, 0);
@@ -90,13 +98,11 @@ class App extends React.Component {
                             yaw,
                             roll
                         } = this.computeHeadRotation(faceLoc)
-                        updateFaceLocation({...faceLoc,pitch, yaw, roll});
+                        updateFaceLocation({...faceLoc, pitch, yaw, roll});
                         VisUtil.drawAxis(ctx, origin, rotationMatrix);
-                    }
-                    else{
+                    } else {
                         updateFaceLocation(null);
                     }
-
                     //const pose2d = await this.posenet2dModel.estimateSinglePose(imageTensor);
                     // if(pose2d.score > 0.2){
                     //     ctx.translate(0, 0);
@@ -105,8 +111,9 @@ class App extends React.Component {
                     //     ctx.restore();
                     // }
                 }
-            }
-            catch (e) {
+                tf.engine().endScope()
+
+            } catch (e) {
                 console.log(e);
             }
         }

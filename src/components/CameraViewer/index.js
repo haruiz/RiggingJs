@@ -58,11 +58,7 @@ class CameraViewer extends React.Component {
                 this.videoCanvasCtx.drawImage(video, 0, 0, videoWidth, videoHeight);
                 this.videoCanvasCtx.restore();
                 if(updateCallback){
-                    //tf.tidy(() => {
-                        let imageTensor = tf.browser.fromPixels(canvas)
-                        await updateCallback(imageTensor, this.drawCanvasCtx, this.cam)
-                        imageTensor.dispose();
-                    //});
+                    await updateCallback(canvas, this.drawCanvasCtx, this.cam)
                 }
             }
             else{
